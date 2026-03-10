@@ -63,13 +63,24 @@ export default function GameFeedback({ gameId }: Props) {
   }
 
   async function fetchComments() {
-    const { data } = await supabase
+    // comments.user_id → creators.id 로 조인 (같은 UUID)
+    const { data, error } = await supabase
       .from('comments')
-      .select('*, creators(name, avatar_url)')
+      .select('*, creators!comments_user_id_fkey(name, avatar_url)')
       .eq('game_id', gameId)
       .order('created_at', { ascending: false });
 
-    if (data) setComments(data as Comment[]);
+    if (error) {
+      // 조인 실패 시 creators 없이 조회
+      const { data: fallback } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('game_id', gameId)
+        .order('created_at', { ascending: false });
+      if (fallback) setComments(fallback as Comment[]);
+    } else if (data) {
+      setComments(data as Comment[]);
+    }
   }
 
   async function handleAddComment(e: React.FormEvent) {
@@ -77,13 +88,17 @@ export default function GameFeedback({ gameId }: Props) {
     if (!user || !newComment.trim()) return;
     setLoading(true);
 
-    await supabase.from('comments').insert({
+    const { error } = await supabase.from('comments').insert({
       game_id: gameId,
       user_id: user.id,
       content: newComment.trim(),
     });
 
-    setNewComment('');
+    if (error) {
+      alert(`댓글 등록 실패: ${error.message}`);
+    } else {
+      setNewComment('');
+    }
     await fetchComments();
     setLoading(false);
   }

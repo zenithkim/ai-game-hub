@@ -59,6 +59,19 @@ create table if not exists public.comments (
   updated_at timestamptz default now()
 );
 
+-- comments.user_id → creators.id FK 추가 (조인용)
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where constraint_name = 'comments_user_id_creators_fkey'
+  ) then
+    alter table public.comments
+      add constraint comments_user_id_creators_fkey
+      foreign key (user_id) references public.creators(id) on delete cascade;
+  end if;
+end $$;
+
 -- ============================================
 -- Indexes (이미 있으면 스킵)
 -- ============================================
