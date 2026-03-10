@@ -119,6 +119,23 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Google AdSense - 하단 광고 */}
+      <section className="mt-12 mb-8">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-1451750373170867"
+          data-ad-slot="auto"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: '(adsbygoogle = window.adsbygoogle || []).push({});',
+          }}
+        />
+      </section>
     </div>
   );
 }
