@@ -68,19 +68,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: '게임', value: games.length, icon: '🎮' },
-          { label: '총 플레이', value: games.reduce((s, g) => s + g.play_count, 0), icon: '▶' },
-          { label: '크리에이터', value: new Set(games.map(g => g.creator_id)).size, icon: '👤' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-card-bg border border-border rounded-xl p-4 text-center">
-            <div className="text-2xl mb-1">{stat.icon}</div>
-            <div className="text-2xl font-bold text-white">{stat.value.toLocaleString()}</div>
-            <div className="text-xs text-gray-500">{stat.label}</div>
-          </div>
-        ))}
+      {/* Ad Banner */}
+      <section className="mb-8">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-1451750373170867"
+          data-ad-slot="auto"
+          data-ad-format="horizontal"
+          data-full-width-responsive="true"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: '(adsbygoogle = window.adsbygoogle || []).push({});',
+          }}
+        />
       </section>
 
       {/* Category Filter */}
