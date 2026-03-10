@@ -39,6 +39,26 @@ create table if not exists public.plays (
   created_at timestamptz default now()
 );
 
+-- 4. Reactions (좋아요/싫어요)
+create table if not exists public.reactions (
+  id uuid default gen_random_uuid() primary key,
+  game_id uuid references public.games(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  type text not null check (type in ('like', 'dislike')),
+  created_at timestamptz default now(),
+  unique(game_id, user_id)
+);
+
+-- 5. Comments (댓글)
+create table if not exists public.comments (
+  id uuid default gen_random_uuid() primary key,
+  game_id uuid references public.games(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  content text not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- ============================================
 -- Indexes (이미 있으면 스킵)
 -- ============================================
@@ -47,6 +67,10 @@ create index if not exists idx_games_status on public.games(status);
 create index if not exists idx_games_category on public.games(category);
 create index if not exists idx_plays_game on public.plays(game_id);
 create index if not exists idx_plays_user on public.plays(user_id);
+create index if not exists idx_reactions_game on public.reactions(game_id);
+create index if not exists idx_reactions_user on public.reactions(user_id);
+create index if not exists idx_comments_game on public.comments(game_id);
+create index if not exists idx_comments_user on public.comments(user_id);
 
 -- ============================================
 -- RLS (Row Level Security)
@@ -54,6 +78,8 @@ create index if not exists idx_plays_user on public.plays(user_id);
 alter table public.creators enable row level security;
 alter table public.games enable row level security;
 alter table public.plays enable row level security;
+alter table public.reactions enable row level security;
+alter table public.comments enable row level security;
 
 -- 기존 정책 삭제 후 재생성
 drop policy if exists "Public read creators" on public.creators;
@@ -82,6 +108,22 @@ create policy "Creators delete own games" on public.games for delete using (auth
 create policy "Admin full access games" on public.games for all using (
   exists (select 1 from public.creators where id = auth.uid() and is_admin = true)
 );
+
+-- Reactions: 누구나 읽기, 로그인 유저 쓰기/수정/삭제
+drop policy if exists "Public read reactions" on public.reactions;
+drop policy if exists "Users manage own reactions" on public.reactions;
+create policy "Public read reactions" on public.reactions for select using (true);
+create policy "Users manage own reactions" on public.reactions for all using (auth.uid() = user_id);
+
+-- Comments: 누구나 읽기, 로그인 유저 쓰기, 본인 댓글만 수정/삭제
+drop policy if exists "Public read comments" on public.comments;
+drop policy if exists "Users insert comments" on public.comments;
+drop policy if exists "Users update own comments" on public.comments;
+drop policy if exists "Users delete own comments" on public.comments;
+create policy "Public read comments" on public.comments for select using (true);
+create policy "Users insert comments" on public.comments for insert with check (auth.uid() = user_id);
+create policy "Users update own comments" on public.comments for update using (auth.uid() = user_id);
+create policy "Users delete own comments" on public.comments for delete using (auth.uid() = user_id);
 
 -- Plays: 누구나 쓰기, 읽기는 게임 소유자 또는 본인
 create policy "Anyone can insert plays" on public.plays for insert with check (true);

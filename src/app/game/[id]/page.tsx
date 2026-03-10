@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Game } from '@/lib/supabase';
 import AdBanner from '@/components/AdBanner';
+import GameFeedback from '@/components/GameFeedback';
 
 export default function GamePage() {
   const params = useParams();
@@ -260,8 +261,11 @@ export default function GamePage() {
         </div>
       )}
 
+      {/* Feedback - 일반 모드에서만 */}
+      {!isFullscreen && <GameFeedback gameId={game.id} />}
+
       {/* Ad Banner - 일반 모드에서만 */}
-      {!isFullscreen && <AdBanner />}
+      {!isFullscreen && <div className="mt-6"><AdBanner /></div>}
     </div>
   );
 }
