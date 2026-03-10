@@ -11,6 +11,8 @@ export default function AdminPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [tab, setTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [stats, setStats] = useState({ totalGames: 0, totalPlays: 0, totalCreators: 0 });
 
   useEffect(() => {
@@ -23,19 +25,31 @@ export default function AdminPage() {
 
   async function checkAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/auth'); return; }
+    if (!user) {
+      setErrorMsg('로그인이 필요합니다. /auth에서 먼저 로그인해주세요.');
+      setChecking(false);
+      return;
+    }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('creators')
       .select('is_admin')
       .eq('id', user.id)
       .single();
 
+    if (error) {
+      setErrorMsg(`creators 조회 실패: ${error.message}`);
+      setChecking(false);
+      return;
+    }
+
     if (!data?.is_admin) {
-      router.push('/');
+      setErrorMsg(`관리자 권한이 없습니다. (email: ${user.email})\nSupabase SQL Editor에서 아래 SQL을 실행해주세요:\n\nUPDATE public.creators SET is_admin = true WHERE email = '${user.email}';`);
+      setChecking(false);
       return;
     }
     setIsAdmin(true);
+    setChecking(false);
 
     // Fetch stats
     const { count: gameCount } = await supabase.from('games').select('*', { count: 'exact', head: true });
@@ -67,6 +81,26 @@ export default function AdminPage() {
     if (!confirm('정말 이 게임을 삭제하시겠어요?')) return;
     await supabase.from('games').delete().eq('id', gameId);
     fetchGames();
+  }
+
+  if (checking) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <div className="text-4xl mb-4 animate-spin">⚙️</div>
+        <p className="text-gray-400">관리자 권한 확인 중...</p>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-20 text-center">
+        <div className="text-4xl mb-4">🔒</div>
+        <h2 className="text-xl font-bold text-white mb-4">Admin 접근 불가</h2>
+        <pre className="bg-card-bg border border-border rounded-xl p-4 text-sm text-left text-yellow-400 whitespace-pre-wrap mb-6">{errorMsg}</pre>
+        <a href="/auth" className="px-6 py-3 bg-accent text-white rounded-xl">로그인하러 가기</a>
+      </div>
+    );
   }
 
   if (!isAdmin) return null;
