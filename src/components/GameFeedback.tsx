@@ -63,24 +63,28 @@ export default function GameFeedback({ gameId }: Props) {
   }
 
   async function fetchComments() {
-    // comments.user_id → creators.id 로 조인 (같은 UUID)
-    const { data, error } = await supabase
+    // 댓글 조회
+    const { data: commentsData } = await supabase
       .from('comments')
-      .select('*, creators!comments_user_id_fkey(name, avatar_url)')
+      .select('*')
       .eq('game_id', gameId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      // 조인 실패 시 creators 없이 조회
-      const { data: fallback } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('game_id', gameId)
-        .order('created_at', { ascending: false });
-      if (fallback) setComments(fallback as Comment[]);
-    } else if (data) {
-      setComments(data as Comment[]);
-    }
+    if (!commentsData) return;
+
+    // 댓글 작성자 이름 조회
+    const userIds = [...new Set(commentsData.map(c => c.user_id))];
+    const { data: creatorsData } = await supabase
+      .from('creators')
+      .select('id, name, email, avatar_url')
+      .in('id', userIds);
+
+    const creatorMap = new Map(creatorsData?.map(c => [c.id, c]) ?? []);
+    const enriched = commentsData.map(c => ({
+      ...c,
+      creators: creatorMap.get(c.user_id) ?? null,
+    }));
+    setComments(enriched as Comment[]);
   }
 
   async function handleAddComment(e: React.FormEvent) {
@@ -229,14 +233,14 @@ export default function GameFeedback({ gameId }: Props) {
                 <div key={comment.id} className="flex gap-3 group">
                   {/* Avatar */}
                   <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {comment.creators?.name?.[0]?.toUpperCase() ?? '?'}
+                    {(comment.creators?.name ?? comment.creators?.email)?.[0]?.toUpperCase() ?? '?'}
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-medium text-white">
-                        {comment.creators?.name ?? 'Anonymous'}
+                        {comment.creators?.name ?? comment.creators?.email?.split('@')[0] ?? 'Anonymous'}
                       </span>
                       <span className="text-xs text-gray-600">
                         {timeAgo(comment.created_at)}

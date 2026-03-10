@@ -55,7 +55,7 @@ export type Comment = {
   content: string;
   created_at: string;
   updated_at: string;
-  creators?: { name: string; avatar_url: string | null };
+  creators?: { name: string; email?: string; avatar_url: string | null } | null;
 };
 
 // Categories
