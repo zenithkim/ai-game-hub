@@ -38,6 +38,7 @@ export default function UploadPage() {
     }
 
     // creators 프로필이 없으면 먼저 생성
+    if (!user) return;
     await supabase.from('creators').upsert({
       id: user.id,
       name: user.user_metadata?.name || user.email?.split('@')[0] || 'Anonymous',
